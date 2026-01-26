@@ -2,11 +2,17 @@
 
 A collection of skills for AI coding agents. Skills are packaged instructions and scripts that extend agent capabilities.
 
+## Installation
+
+```bash
+npx skills add payloadcms/skills
+```
+
 ## Available Skills
 
-### payload
+### `payload`
 
-Comprehensive development guidelines for Payload projects. Covers collections, fields, hooks, access control, queries, and plugin development with TypeScript-first patterns.
+> Comprehensive development guidelines for Payload projects. Covers collections, fields, hooks, access control, queries, and plugin development with TypeScript-first patterns.
 
 **When to use:** Working with Payload projects (payload.config.ts, collections, fields, hooks, access control). Debugging validation errors, security issues, relationship queries, transactions, or hook behavior.
 
@@ -16,27 +22,6 @@ Comprehensive development guidelines for Payload projects. Covers collections, f
 - Essential patterns (collections, fields, hooks, queries)
 - Security pitfalls and best practices
 - 10+ reference documents covering all Payload APIs
-
-## Installation
-
-```bash
-npx add-skill payloadcms/skills
-```
-
-Or manually copy the skill directory to `~/.claude/skills/`.
-
-## Structure
-
-Each skill follows this structure:
-
-```
-skills/{skill-name}/
-├── SKILL.md          # Agent instructions (required)
-├── reference/        # Supporting documentation (optional)
-│   └── *.md
-└── scripts/          # Helper automation (optional)
-    └── *.sh
-```
 
 ## License
 
