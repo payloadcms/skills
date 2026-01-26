@@ -6,9 +6,9 @@ A collection of skills for AI coding agents. Skills are packaged instructions an
 
 ### payload
 
-Comprehensive development guidelines for Payload CMS projects. Covers collections, fields, hooks, access control, queries, and plugin development with TypeScript-first patterns.
+Comprehensive development guidelines for Payload projects. Covers collections, fields, hooks, access control, queries, and plugin development with TypeScript-first patterns.
 
-**When to use:** Working with Payload CMS projects (payload.config.ts, collections, fields, hooks, access control). Debugging validation errors, security issues, relationship queries, transactions, or hook behavior.
+**When to use:** Working with Payload projects (payload.config.ts, collections, fields, hooks, access control). Debugging validation errors, security issues, relationship queries, transactions, or hook behavior.
 
 **Includes:**
 

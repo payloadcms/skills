@@ -89,7 +89,7 @@ The `description` frontmatter field is critical for skill discovery. Include:
 Example:
 
 ```yaml
-description: Use when working with Payload CMS projects (payload.config.ts, collections, fields, hooks, access control). Use when debugging validation errors, security issues, relationship queries, transactions, or hook behavior.
+description: Use when working with Payload projects (payload.config.ts, collections, fields, hooks, access control). Use when debugging validation errors, security issues, relationship queries, transactions, or hook behavior.
 ```
 
 ### Reference Files
@@ -134,7 +134,7 @@ Add SKILL.md content to project knowledge or paste directly.
 
 ### payload
 
-Payload CMS development guidelines covering:
+Payload development guidelines covering:
 
 - Collections, fields, hooks, access control
 - TypeScript patterns and type safety
