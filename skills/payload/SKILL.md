@@ -232,6 +232,22 @@ export default async function Page() {
 }
 ```
 
+### Logger Usage
+
+```ts
+// ✅ Valid: single string
+payload.logger.error('Something went wrong')
+
+// ✅ Valid: object with msg and err
+payload.logger.error({ msg: 'Failed to process', err: error })
+
+// ❌ Invalid: don't pass error as second argument
+payload.logger.error('Failed to process', error)
+
+// ❌ Invalid: use `err` not `error`, use `msg` not `message`
+payload.logger.error({ message: 'Failed', error: error })
+```
+
 ## Security Pitfalls
 
 ### 1. Local API Access Control (CRITICAL)
