@@ -7,12 +7,6 @@ description: Use when user wants to migrate content from another CMS (WordPress,
 
 Interactive workflow to design Payload collections from source CMS data. Config-first approach: establish the data structure through conversation before any data import.
 
-## When to Use
-
-- User mentions migrating content to Payload
-- User has data exports (CSV, JSON) from another CMS
-- User asks about importing from WordPress, Contentful, Strapi, Sanity, Webflow, etc.
-
 ## Workflow
 
 ```
