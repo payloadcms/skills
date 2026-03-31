@@ -61,21 +61,11 @@ export const Posts: CollectionConfig = {
 }
 ```
 
-**Always explain decisions:**
-- "I made `status` a select field with these options because..."
-- "This looks like a relationship to authors - should it allow multiple?"
-- "The `metadata` object could be a group field or JSON - which do you prefer?"
+Explain your reasoning for each field choice. When something could go multiple ways (group vs JSON, text vs textarea, select vs relationship), ask rather than assume.
 
 ## Phase 3: Iterate with User
 
-After proposing, ask targeted questions:
-
-- "Does this field need to be required?"
-- "Should users be able to add multiple categories?"
-- "Is this rich text or plain HTML you want to store as-is?"
-- "I see timestamps - do you need Payload's built-in createdAt/updatedAt or custom fields?"
-
-Continue until user confirms: **"This collection config looks good"**
+Work through uncertainties: required fields, hasMany relationships, rich text vs HTML, custom timestamps vs built-in. Continue until the user confirms the config.
 
 ## Phase 4: Additional Collections
 
@@ -102,26 +92,16 @@ Only after ALL collections are confirmed, discuss data import:
 
 Offer to generate a seed script or walk through manual import.
 
-## Key Questions by Phase
+## Things to Clarify
 
-### Getting Data Sample
-- "Can you share a sample of your [content type] data? JSON export, CSV, or paste a few records"
-- "What CMS is this from? Knowing the source helps me understand the data shape"
+Throughout the process, watch for these:
 
-### Reviewing Fields
-- "This `author` field has an ID - does it reference another collection?"
-- "I see `featured_image` with a URL - should this be an upload field in Payload?"
-- "The `blocks` array has different object shapes - is this flexible content like ACF?"
-
-### Confirming Config
-- "Here's the collection config. Any fields missing or incorrectly typed?"
-- "Should any of these fields be localized?"
-- "Any access control needs? (who can read/write)"
-
-### More Collections
-- "What other content types exist in your source CMS?"
-- "Do you have categories, tags, or taxonomy that posts reference?"
-- "Any global settings or site config to migrate?"
+- **ID references** - are they relationships to other collections?
+- **Image/file URLs** - upload fields or keep as external URLs?
+- **Nested objects** - group, array, or blocks?
+- **Localization** - any fields need per-locale values?
+- **Access control** - who can read/write this collection?
+- **Related content types** - categories, tags, authors that need their own collections?
 
 ## Critical: Select vs Relationship
 
@@ -167,4 +147,3 @@ If creating a relationship, remember to add the related collection (Categories, 
 | Rich text ambiguity | Clarify: Lexical editor, Slate, or store raw HTML |
 | Missing media collection | Always confirm upload collection exists before referencing |
 | Overly complex nested data | Consider flattening or using blocks instead of deep groups |
-| **Select vs relationship confusion** | Always ask if values should be editable by users |
