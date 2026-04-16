@@ -28,6 +28,22 @@ npx skills add payloadcms/skills
 
 [View full documentation →](skills/payload/README.md)
 
+### `cms-migration`
+
+> Interactive workflow to design Payload collections from source CMS data. Config-first approach: establish data structure through conversation before importing.
+
+**When to use:** Migrating content to Payload from WordPress, Contentful, Strapi, Sanity, Webflow, or other CMSs. Working with data exports (JSON, CSV) that need to be mapped to Payload collections.
+
+**Covers:**
+
+- **Data Analysis**: Identify field types, relationships, and patterns from source data
+- **Collection Design**: Generate Payload collection configs through iterative conversation
+- **Field Mapping**: Complete reference for all Payload field types with source patterns
+- **Migration Patterns**: WordPress, Contentful, Strapi field mappings
+- **Common Pitfalls**: Select vs relationship disambiguation, rich text handling
+
+[View full documentation →](skills/cms-migration/SKILL.md)
+
 ## Resources
 
 - [Payload Documentation](https://payloadcms.com/docs)
