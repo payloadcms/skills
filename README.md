@@ -1,12 +1,21 @@
 # AI Agent Skills
 
-A collection of skills for AI coding agents. Skills are packaged instructions and scripts that extend agent capabilities.
+A collection of model-agnostic skills for AI coding agents working with and contributing to Payload.
+
+These skills package repeatable workflows, project knowledge, and helper scripts so contributors can install the same guidance across different agent runtimes.
 
 ## Installation
 
 ```bash
 npx skills add payloadcms/skills
 ```
+
+## What This Repo Is For
+
+- Payload development workflows
+- Contributor and maintainer tasks
+- Repeatable PR, debugging, migration, and authoring flows
+- Skills that are useful across agent ecosystems, not tied to a single model or editor
 
 ## Available Skills
 
