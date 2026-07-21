@@ -44,6 +44,23 @@ npx skills add payloadcms/skills
 
 [View full documentation →](skills/cms-migration/SKILL.md)
 
+### `e2e-pr-assets`
+
+> Contributor-focused workflow for attaching before/after admin UI evidence to Payload pull requests with GitHub-inline videos or screenshots.
+
+**When to use:** Preparing or updating a Payload PR that needs reviewer-facing visual proof from e2e flows, especially when the fix is easiest to understand through before/after media in the PR body.
+
+**Covers:**
+
+- **Recording Plans**: Local `Before` / `After` shot lists with hidden PR-body comments
+- **Video Evidence**: Record, convert, verify, and upload GitHub-inline H.264 MP4s
+- **Screenshot Evidence**: Capture and attach before/after PNGs when screenshots are the right fit
+- **Temporary Scenarios**: Agent-authored recording scripts for clearer demos than noisy committed tests
+- **PR Body Updates**: Idempotent before/after sections with explicit incorrect/correct proof lines
+- **Media Hygiene**: Startup-frame trimming, first-frame verification, and cleanup guidance
+
+[View full documentation →](skills/e2e-pr-assets/README.md)
+
 ## Resources
 
 - [Payload Documentation](https://payloadcms.com/docs)
