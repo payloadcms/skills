@@ -48,16 +48,20 @@ write_config_file() {
   temp_file="$(mktemp)"
 
   {
+    printf '# Config file: %s\n' "$config_file"
     cat <<'EOF'
-# e2e-pr-assets configuration
 #
-# Configure with `e2e-pr-assets --configure KEY VALUE`
-# or manually update /Users/jflesch/.config/e2e-pr-assets/config
+# -------------------------------------------
+# Instructions
+# -------------------------------------------
+#
+# run `e2e-pr-assets --configure KEY VALUE`
+# or update the config file manually
 #
 # -------------------------------------------
 # Configurable keys
 # -------------------------------------------
-# 
+#
 EOF
 
     while IFS= read -r key; do
@@ -68,11 +72,10 @@ EOF
     done < <(e2e_supported_config_keys)
 
     cat <<'EOF'
+# -------------------------------------------
+# Configured keys
+# -------------------------------------------
 #
-# -------------------------------------------
-# Configured keys:
-# -------------------------------------------
-# 
 EOF
 
     while IFS= read -r key; do
@@ -106,7 +109,6 @@ show_config() {
   local config_file="$1"
   write_config_file "$config_file"
 
-  printf '%s\n' "$config_file"
   cat "$config_file"
 }
 

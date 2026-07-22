@@ -37,16 +37,17 @@ assert_not_contains() {
 }
 
 show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
-assert_contains "$show_output" "${CONFIG_FILE}"
-assert_contains "$show_output" '# Configure with `e2e-pr-assets --configure KEY VALUE`'
-assert_contains "$show_output" "# or manually update /Users/jflesch/.config/e2e-pr-assets/config"
+assert_contains "$show_output" "# Config file: ${CONFIG_FILE}"
+assert_contains "$show_output" "# Instructions"
+assert_contains "$show_output" '# run `e2e-pr-assets --configure KEY VALUE`'
+assert_contains "$show_output" "# or update the config file manually"
 assert_contains "$show_output" "# -------------------------------------------"
 assert_contains "$show_output" "# Configurable keys"
 assert_contains "$show_output" "# GITHUB_BROWSER_PROFILE"
 assert_contains "$show_output" "# - Description: GitHub browser profile path"
 assert_contains "$show_output" "# - Default: '/tmp/github-upload-profile'"
 assert_contains "$show_output" "# E2E_MEDIA_AUTO_CLEANUP"
-assert_contains "$show_output" "# Configured keys:"
+assert_contains "$show_output" "# Configured keys"
 assert_contains "$show_output" "# (none)"
 
 if [[ ! -f "$CONFIG_FILE" ]]; then
@@ -55,10 +56,11 @@ if [[ ! -f "$CONFIG_FILE" ]]; then
 fi
 
 file_contents="$(cat "$CONFIG_FILE")"
-assert_contains "$file_contents" '# Configure with `e2e-pr-assets --configure KEY VALUE`'
+assert_contains "$file_contents" "# Config file: ${CONFIG_FILE}"
+assert_contains "$file_contents" '# run `e2e-pr-assets --configure KEY VALUE`'
 assert_contains "$file_contents" "# -------------------------------------------"
 assert_contains "$file_contents" "# Configurable keys"
-assert_contains "$file_contents" "# Configured keys:"
+assert_contains "$file_contents" "# Configured keys"
 assert_contains "$file_contents" "# (none)"
 assert_not_contains "$file_contents" "GITHUB_BROWSER_PROFILE='/tmp/github-upload-profile'"
 
@@ -72,12 +74,12 @@ E2E_GITHUB_AUTO_REMOVE_PROFILE=0
 EOF
 
 show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
-assert_contains "$show_output" '# Configure with `e2e-pr-assets --configure KEY VALUE`'
+assert_contains "$show_output" '# run `e2e-pr-assets --configure KEY VALUE`'
 assert_contains "$show_output" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"
 
 file_contents="$(cat "$CONFIG_FILE")"
-assert_contains "$file_contents" '# Configure with `e2e-pr-assets --configure KEY VALUE`'
-assert_contains "$file_contents" "# Configured keys:"
+assert_contains "$file_contents" '# run `e2e-pr-assets --configure KEY VALUE`'
+assert_contains "$file_contents" "# Configured keys"
 assert_not_contains "$file_contents" "# Common keys:"
 assert_contains "$file_contents" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"
 
@@ -86,7 +88,7 @@ assert_contains "$file_contents" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"
 
 file_contents="$(cat "$CONFIG_FILE")"
 assert_contains "$file_contents" "# Configurable keys"
-assert_contains "$file_contents" "# Configured keys:"
+assert_contains "$file_contents" "# Configured keys"
 assert_contains "$file_contents" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"
 assert_contains "$file_contents" "GITHUB_BROWSER_PROFILE='${HOME}/github-profile'"
 assert_not_contains "$file_contents" "E2E_MEDIA_AUTO_CLEANUP=1"
