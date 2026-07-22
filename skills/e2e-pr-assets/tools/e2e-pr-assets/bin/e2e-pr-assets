@@ -54,7 +54,10 @@ write_config_file() {
 # Configure with `e2e-pr-assets --configure KEY VALUE`
 # or manually update /Users/jflesch/.config/e2e-pr-assets/config
 #
-# Configurable keys:
+# -------------------------------------------
+# Configurable keys
+# -------------------------------------------
+# 
 EOF
 
     while IFS= read -r key; do
@@ -66,7 +69,10 @@ EOF
 
     cat <<'EOF'
 #
+# -------------------------------------------
 # Configured keys:
+# -------------------------------------------
+# 
 EOF
 
     while IFS= read -r key; do
