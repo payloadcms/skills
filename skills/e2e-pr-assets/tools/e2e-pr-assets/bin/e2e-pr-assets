@@ -50,9 +50,11 @@ write_config_file() {
   {
     cat <<'EOF'
 # e2e-pr-assets configuration
-# Environment variables still override configured values for one-off runs.
 #
-# Available keys
+# Configure with `e2e-pr-assets --configure KEY VALUE`
+# or manually update /Users/jflesch/.config/e2e-pr-assets/config
+#
+# Configurable keys:
 EOF
 
     while IFS= read -r key; do
@@ -96,10 +98,7 @@ EOF
 
 show_config() {
   local config_file="$1"
-
-  if [[ ! -f "$config_file" ]]; then
-    write_config_file "$config_file"
-  fi
+  write_config_file "$config_file"
 
   printf '%s\n' "$config_file"
   cat "$config_file"
