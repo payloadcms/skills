@@ -37,7 +37,8 @@ assert_not_contains() {
 }
 
 show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
-assert_contains "$show_output" "# Config file: ${CONFIG_FILE}"
+assert_contains "$show_output" "${CONFIG_FILE}"
+assert_contains "$show_output" "# Config file."
 assert_contains "$show_output" "GITHUB_BROWSER_PROFILE='/tmp/github-upload-profile'"
 assert_contains "$show_output" "# default;"
 

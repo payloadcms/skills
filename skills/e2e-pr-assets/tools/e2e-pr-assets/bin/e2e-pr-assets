@@ -83,7 +83,8 @@ show_config() {
   local source=""
   local description=""
 
-  printf '# Config file: %s\n' "$config_file"
+  printf '%s\n' "$config_file"
+  printf '# Config file.\n'
   printf '# Effective values for e2e-pr-assets helpers.\n'
 
   while IFS= read -r key; do
