@@ -1,8 +1,8 @@
 export default async function scenario({ cursor, expect, keyboardOverlay, page, record }) {
-  await page.setContent(`
+  await page.goto(`data:text/html,${encodeURIComponent(`
     <button id="shortcut-target" type="button">Shortcut target</button>
     <input id="private-input" />
-  `)
+  `)}`)
 
   const overlay = page.locator('#payload-e2e-keyboard')
 
@@ -16,8 +16,17 @@ export default async function scenario({ cursor, expect, keyboardOverlay, page, 
   expect(cursor).not.toBeNull()
   expect(keyboardOverlay).toBeTruthy()
 
+  const cursorOverlay = page.locator('#payload-e2e-cursor')
+  await expect(cursorOverlay).toHaveCount(0)
+
   await page.evaluate(() => {
     window.__recordedActions = []
+    window.__cursorMoveCount = 0
+    const originalMoveTo = window.__payloadE2ECursor.moveTo.bind(window.__payloadE2ECursor)
+    window.__payloadE2ECursor.moveTo = (...args) => {
+      window.__cursorMoveCount += 1
+      originalMoveTo(...args)
+    }
     document.querySelector('#shortcut-target').addEventListener('click', (event) => {
       window.__recordedActions.push({
         ctrlKey: event.ctrlKey,
@@ -36,6 +45,11 @@ export default async function scenario({ cursor, expect, keyboardOverlay, page, 
     position: { x: 4, y: 4 },
   })
   expect(locatorClickResult).toBeUndefined()
+  await expect(cursorOverlay).toHaveCount(1)
+  await expect(cursorOverlay).toHaveCSS('opacity', '1')
+  expect(await page.evaluate(() => window.__cursorMoveCount)).toBe(1)
+  expect(await cursorOverlay.evaluate((element) => element.style.transition)).not.toContain('transform')
+  expect(await page.evaluate(() => typeof window.__payloadE2ECursor.pulse)).toBe('undefined')
   await expect(overlay).toContainText(process.platform === 'darwin' ? '⌘' : 'Ctrl')
   await expect(overlay).toContainText('Click')
   expect(await page.evaluate(() => window.__recordedActions[0])).toMatchObject({
@@ -79,6 +93,12 @@ export default async function scenario({ cursor, expect, keyboardOverlay, page, 
   await expect(overlay).toContainText('Shift')
   await expect(overlay).toContainText('↓')
   await page.keyboard.up('Shift')
+
+  await page.keyboard.down(process.platform === 'darwin' ? 'Meta' : 'Control')
+  await page.locator('#shortcut-target').click()
+  await expect(overlay).toContainText(process.platform === 'darwin' ? '⌘' : 'Ctrl')
+  await expect(overlay).toContainText('Click')
+  await page.keyboard.up(process.platform === 'darwin' ? 'Meta' : 'Control')
 
   await page.locator('#private-input').fill('never-show-this-value')
   await page.locator('#private-input').pressSequentially('typed-secret')

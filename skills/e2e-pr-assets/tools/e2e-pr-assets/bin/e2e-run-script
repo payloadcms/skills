@@ -160,9 +160,10 @@ async function installInteractionOverlays(page) {
           cursor.style.borderRadius = '9999px'
           cursor.style.background = 'rgba(255, 255, 255, .85)'
           cursor.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, .35), 0 8px 18px rgba(0, 0, 0, .25)'
+          cursor.style.opacity = '0'
           cursor.style.pointerEvents = 'none'
           cursor.style.transform = 'translate(-50%, -50%)'
-          cursor.style.transition = 'left 130ms ease, top 130ms ease, transform 100ms ease'
+          cursor.style.transition = 'left 130ms ease, top 130ms ease, opacity 80ms ease'
           cursor.style.zIndex = '2147483647'
           appendToDocument(cursor)
         }
@@ -173,16 +174,9 @@ async function installInteractionOverlays(page) {
         const cursor = this.ensure()
         cursor.style.left = `${x}px`
         cursor.style.top = `${y}px`
-      },
-      pulse() {
-        const cursor = this.ensure()
-        cursor.style.transform = 'translate(-50%, -50%) scale(.72)'
-        window.setTimeout(() => {
-          cursor.style.transform = 'translate(-50%, -50%) scale(1)'
-        }, 120)
+        cursor.style.opacity = '1'
       },
     }
-    window.__payloadE2ECursor.moveTo(window.innerWidth / 2, window.innerHeight / 2)
 
     window.__payloadE2EKeyboard = {
       held: [],
@@ -299,7 +293,6 @@ async function createCursorHelper(page) {
     async click(target, options) {
       const locator = typeof target === 'string' ? page.locator(target) : target
       await moveToLocator(locator)
-      await page.evaluate(() => window.__payloadE2ECursor?.pulse())
       await locator.click(options)
       await page.waitForTimeout(120)
     },
@@ -501,9 +494,8 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   locatorPrototype.click = async function wrappedLocatorClick(...args) {
     try {
       await cursor.moveTo(this)
-      await page.evaluate(() => window.__payloadE2ECursor?.pulse())
     } catch (_) {
-      // Fall back to the original action if the locator re-renders mid-animation.
+      // Fall back to the original action if the locator re-renders during the cursor move.
     }
     await showModifiedClick(args[0])
     return originalLocatorClick.apply(this, args)
@@ -526,9 +518,8 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   page.click = async (selector, options) => {
     try {
       await cursor.moveTo(selector)
-      await page.evaluate(() => window.__payloadE2ECursor?.pulse())
     } catch (_) {
-      // Fall back to the original action if the locator re-renders mid-animation.
+      // Fall back to the original action if the locator re-renders during the cursor move.
     }
     await showModifiedClick(options)
     return originalPageClick(selector, options)
@@ -612,6 +603,7 @@ async function main() {
         bringToFrontWrapped: false,
         createdAtMs: Date.now(),
         index: pageOrder.length,
+        initializationPromise: null,
         isInitialized: false,
         keyboardOverlay: null,
         page: targetPage,
@@ -621,30 +613,41 @@ async function main() {
       pageMetadata.set(targetPage, metadata)
     }
 
-    if (metadata.isInitialized) {
-      return metadata
+    if (!metadata.initializationPromise) {
+      metadata.initializationPromise = (async () => {
+        await installInteractionOverlays(targetPage)
+
+        const targetCursor = await createCursorHelper(targetPage)
+        const targetKeyboardOverlay = createKeyboardOverlayHelper(targetPage, overlayState)
+        metadata.keyboardOverlay = targetKeyboardOverlay
+        installRecordedActionWrappers(targetPage, targetCursor, targetKeyboardOverlay)
+
+        if (!metadata.bringToFrontWrapped) {
+          const originalBringToFront = targetPage.bringToFront.bind(targetPage)
+          targetPage.bringToFront = async (...args) => {
+            const result = await originalBringToFront(...args)
+            await switchRecordingTo(targetPage)
+            return result
+          }
+          metadata.bringToFrontWrapped = true
+        }
+
+        metadata.isInitialized = true
+
+        return metadata
+      })()
     }
 
-    await installInteractionOverlays(targetPage)
+    const initializationPromise = metadata.initializationPromise
 
-    const targetCursor = await createCursorHelper(targetPage)
-    const targetKeyboardOverlay = createKeyboardOverlayHelper(targetPage, overlayState)
-    metadata.keyboardOverlay = targetKeyboardOverlay
-    installRecordedActionWrappers(targetPage, targetCursor, targetKeyboardOverlay)
-
-    if (!metadata.bringToFrontWrapped) {
-      const originalBringToFront = targetPage.bringToFront.bind(targetPage)
-      targetPage.bringToFront = async (...args) => {
-        const result = await originalBringToFront(...args)
-        await switchRecordingTo(targetPage)
-        return result
+    try {
+      return await initializationPromise
+    } catch (error) {
+      if (metadata.initializationPromise === initializationPromise) {
+        metadata.initializationPromise = null
       }
-      metadata.bringToFrontWrapped = true
+      throw error
     }
-
-    metadata.isInitialized = true
-
-    return metadata
   }
 
   const switchRecordingTo = async (targetPage) => {
@@ -683,7 +686,6 @@ async function main() {
       return
     }
 
-    await installInteractionOverlays(targetPage)
     await renderOverlayTokens(targetPage, overlayState.lastShownTokens)
   }
 

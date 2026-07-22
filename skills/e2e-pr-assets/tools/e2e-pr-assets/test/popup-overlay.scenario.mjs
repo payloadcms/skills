@@ -16,6 +16,9 @@ export default async function scenario({ browserContext, expect, keyboardOverlay
   await handoffPromise
   await expect(popup.locator('#popup-ready')).toContainText('Popup ready')
 
+  const popupCursor = popup.locator('#payload-e2e-cursor')
+  await expect(popupCursor).toHaveCount(0)
+
   const popupOverlay = popup.locator('#payload-e2e-keyboard')
   await expect(popupOverlay).toContainText(process.platform === 'darwin' ? '⌘' : 'Ctrl')
   await expect(popupOverlay).toContainText('Click')
