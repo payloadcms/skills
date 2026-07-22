@@ -38,28 +38,37 @@ assert_not_contains() {
 
 show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
 assert_contains "$show_output" "${CONFIG_FILE}"
-assert_contains "$show_output" "# Config file."
-assert_contains "$show_output" "GITHUB_BROWSER_PROFILE='/tmp/github-upload-profile'"
-assert_contains "$show_output" "# default;"
+assert_contains "$show_output" "# Available keys"
+assert_contains "$show_output" "# GITHUB_BROWSER_PROFILE:"
+assert_contains "$show_output" "# E2E_MEDIA_AUTO_CLEANUP:"
+assert_contains "$show_output" "# Configured keys"
+assert_contains "$show_output" "# (none)"
 
-if [[ -f "$CONFIG_FILE" ]]; then
-  echo "Expected --show-config to not create a config file" >&2
+if [[ ! -f "$CONFIG_FILE" ]]; then
+  echo "Expected --show-config to create a config file" >&2
   exit 1
 fi
+
+file_contents="$(cat "$CONFIG_FILE")"
+assert_contains "$file_contents" "# Available keys"
+assert_contains "$file_contents" "# Configured keys"
+assert_contains "$file_contents" "# (none)"
+assert_not_contains "$file_contents" "GITHUB_BROWSER_PROFILE='/tmp/github-upload-profile'"
 
 "${BIN_DIR}/e2e-pr-assets" --configure E2E_GITHUB_AUTO_REMOVE_PROFILE 0 >/dev/null
 "${BIN_DIR}/e2e-pr-assets" --configure GITHUB_BROWSER_PROFILE "${HOME}/github-profile" >/dev/null
 
 file_contents="$(cat "$CONFIG_FILE")"
+assert_contains "$file_contents" "# Available keys"
+assert_contains "$file_contents" "# Configured keys"
 assert_contains "$file_contents" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"
 assert_contains "$file_contents" "GITHUB_BROWSER_PROFILE='${HOME}/github-profile'"
-assert_not_contains "$file_contents" "E2E_MEDIA_AUTO_CLEANUP="
-assert_not_contains "$file_contents" "Environment variables override values in this file."
+assert_not_contains "$file_contents" "E2E_MEDIA_AUTO_CLEANUP=1"
+assert_not_contains "$file_contents" "# (none)"
 
 show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
 assert_contains "$show_output" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"
 assert_contains "$show_output" "GITHUB_BROWSER_PROFILE='${HOME}/github-profile'"
-assert_contains "$show_output" "# config;"
 
 # shellcheck source=/dev/null
 source "${REPO_ROOT}/tools/e2e-pr-assets/lib/config.sh"
@@ -76,10 +85,6 @@ if [[ "${GITHUB_BROWSER_PROFILE}" != "${HOME}/github-profile" ]]; then
 fi
 
 export E2E_GITHUB_AUTO_REMOVE_PROFILE=1
-show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
-assert_contains "$show_output" "E2E_GITHUB_AUTO_REMOVE_PROFILE=1"
-assert_contains "$show_output" "# env;"
-
 e2e_load_config
 
 if [[ "${E2E_GITHUB_AUTO_REMOVE_PROFILE}" != "1" ]]; then
@@ -89,8 +94,8 @@ fi
 
 "${BIN_DIR}/e2e-pr-assets" --unset GITHUB_BROWSER_PROFILE >/dev/null
 show_output="$("${BIN_DIR}/e2e-pr-assets" --show-config)"
-assert_contains "$show_output" "GITHUB_BROWSER_PROFILE='/tmp/github-upload-profile'"
-assert_contains "$show_output" "# default;"
+assert_not_contains "$show_output" "GITHUB_BROWSER_PROFILE='${HOME}/github-profile'"
 
 file_contents="$(cat "$CONFIG_FILE")"
 assert_not_contains "$file_contents" "GITHUB_BROWSER_PROFILE="
+assert_contains "$file_contents" "E2E_GITHUB_AUTO_REMOVE_PROFILE=0"

@@ -48,6 +48,25 @@ write_config_file() {
   temp_file="$(mktemp)"
 
   {
+    cat <<'EOF'
+# e2e-pr-assets configuration
+# Environment variables still override configured values for one-off runs.
+#
+# Available keys
+EOF
+
+    while IFS= read -r key; do
+      printf '# %s: %s Default: %s\n' \
+        "$key" \
+        "$(e2e_config_description "$key")" \
+        "$(e2e_format_config_value "$(e2e_config_default_value "$key")")"
+    done < <(e2e_supported_config_keys)
+
+    cat <<'EOF'
+#
+# Configured keys
+EOF
+
     while IFS= read -r key; do
       value=""
 
@@ -66,33 +85,24 @@ write_config_file() {
       has_output=true
       printf '%s=%s\n' "$key" "$(e2e_format_config_value "$value")"
     done < <(e2e_supported_config_keys)
-  } > "$temp_file"
 
-  if [[ "$has_output" != "true" ]]; then
-    rm -f "$temp_file" "$config_file"
-    return
-  fi
+    if [[ "$has_output" != "true" ]]; then
+      printf '# (none)\n'
+    fi
+  } > "$temp_file"
 
   mv "$temp_file" "$config_file"
 }
 
 show_config() {
   local config_file="$1"
-  local key=""
-  local value=""
-  local source=""
-  local description=""
+
+  if [[ ! -f "$config_file" ]]; then
+    write_config_file "$config_file"
+  fi
 
   printf '%s\n' "$config_file"
-  printf '# Config file.\n'
-  printf '# Effective values for e2e-pr-assets helpers.\n'
-
-  while IFS= read -r key; do
-    value="$(e2e_effective_config_value "$key" "$config_file" | awk -F '\t' 'NR == 1 { print $1 }')"
-    source="$(e2e_effective_config_value "$key" "$config_file" | awk -F '\t' 'NR == 1 { print $2 }')"
-    description="$(e2e_config_description "$key")"
-    printf '%s=%s  # %s; %s\n' "$key" "$(e2e_format_config_value "$value")" "$source" "$description"
-  done < <(e2e_supported_config_keys)
+  cat "$config_file"
 }
 
 CONFIG_FILE="$(e2e_config_file)"

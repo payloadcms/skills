@@ -49,7 +49,7 @@ e2e-pr-assets --configure GITHUB_BROWSER_PROFILE /path/to/github-profile
 e2e-pr-assets --show-config
 ```
 
-The saved config file is intentionally sparse and stores only explicit overrides. Use `e2e-pr-assets --show-config` to inspect the effective values and where each one comes from.
+The config layout includes an `Available keys` comment section and a `Configured keys` section so the file itself stays readable when opened directly. `e2e-pr-assets --show-config` prints the config path first and then shows that same file content.
 
 ## Workflow Highlights
 

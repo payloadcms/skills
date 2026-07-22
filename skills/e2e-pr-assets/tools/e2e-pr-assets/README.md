@@ -41,9 +41,13 @@ e2e-pr-assets --configure E2E_GITHUB_AUTO_REMOVE_PROFILE 0
 e2e-pr-assets --show-config
 ```
 
-This stores only the keys you explicitly set in `~/.config/e2e-pr-assets/config` by default, or `$XDG_CONFIG_HOME/e2e-pr-assets/config` when `XDG_CONFIG_HOME` is set.
+This writes `~/.config/e2e-pr-assets/config` by default, or `$XDG_CONFIG_HOME/e2e-pr-assets/config` when `XDG_CONFIG_HOME` is set.
 
-Use `e2e-pr-assets --show-config` to inspect effective values, including whether each one currently comes from an environment variable, your sparse config file, or the built-in default.
+The config file is organized into two sections:
+- `Available keys`: comment lines that explain each supported setting and its default value
+- `Configured keys`: only the keys you have explicitly set, or `# (none)` when nothing is configured yet
+
+`e2e-pr-assets --show-config` prints the config path on its own line first for easier terminal click-through, then prints the config file contents.
 
 Environment variables still override config values for one-off runs, so commands like `E2E_MEDIA_AUTO_CLEANUP=0 e2e-attach-pr ...` continue to work.
 
@@ -79,7 +83,7 @@ Before recording, create a temporary local `recording-plan.md` outside the repo 
   - If the selected browser profile is already signed in to GitHub, upload proceeds immediately.
   - If not signed in, it opens `e2e-github-login-profile`, waits for manual sign-in detection, then retries upload once automatically.
   - On completion (success/failure), it removes temporary profile directories by default for security.
-  - Configure repeat-use defaults with `e2e-pr-assets --configure ...`, then use `e2e-pr-assets --show-config` to confirm the effective values; explicit env vars still take precedence.
+  - Configure repeat-use defaults with `e2e-pr-assets --configure ...`, then use `e2e-pr-assets --show-config` to inspect the available/configured sections; explicit env vars still take precedence.
   - Override profile with `GITHUB_BROWSER_PROFILE=/path/to/profile`.
   - Disable auto-removal with `E2E_GITHUB_AUTO_REMOVE_PROFILE=0`.
   - For non-temporary custom paths, removal is skipped unless `E2E_GITHUB_FORCE_REMOVE_PROFILE=1`.
