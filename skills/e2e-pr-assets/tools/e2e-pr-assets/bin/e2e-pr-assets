@@ -58,15 +58,15 @@ write_config_file() {
 EOF
 
     while IFS= read -r key; do
-      printf '# %s: %s Default: %s\n' \
-        "$key" \
-        "$(e2e_config_description "$key")" \
-        "$(e2e_format_config_value "$(e2e_config_default_value "$key")")"
+      printf '# %s\n' "$key"
+      printf '# - Description: %s\n' "$(e2e_config_description "$key")"
+      printf '# - Default: %s\n' "$(e2e_format_config_value "$(e2e_config_default_value "$key")")"
+      printf '#\n'
     done < <(e2e_supported_config_keys)
 
     cat <<'EOF'
 #
-# Configured keys
+# Configured keys:
 EOF
 
     while IFS= read -r key; do
