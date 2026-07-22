@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# e2e-pr-assets --help | --configure KEY VALUE | --unset KEY | --show-config | --config-path
+# Manages local defaults for the e2e-pr-assets helper workflow.
+
+set -euo pipefail
+
+resolve_script_dir() {
+  local source="${BASH_SOURCE[0]}"
+  while [[ -h "$source" ]]; do
+    local dir
+    dir="$(cd -P "$(dirname "$source")" && pwd)"
+    source="$(readlink "$source")"
+    [[ "$source" != /* ]] && source="${dir}/${source}"
+  done
+  cd -P "$(dirname "$source")" && pwd
+}
+
+SCRIPT_DIR="$(resolve_script_dir)"
+
+# shellcheck source=/dev/null
+source "${SCRIPT_DIR}/../lib/config.sh"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  e2e-pr-assets --help
+  e2e-pr-assets --configure KEY VALUE
+  e2e-pr-assets --unset KEY
+  e2e-pr-assets --show-config
+  e2e-pr-assets --config-path
+
+This command manages local defaults for the e2e-pr-assets helper scripts.
+Environment variables still override config values for one-off runs.
+EOF
+}
+
+write_config_file() {
+  local config_file="$1"
+  local override_key="${2:-}"
+  local override_value="${3:-}"
+  local unset_key="${4:-}"
+  local temp_file=""
+  local key=""
+  local value=""
+  local has_output=false
+
+  mkdir -p "$(dirname "$config_file")"
+  temp_file="$(mktemp)"
+
+  {
+    printf '# Config file: %s\n' "$config_file"
+    cat <<'EOF'
+#
+# -------------------------------------------
+# Instructions
+# -------------------------------------------
+#
+# run `e2e-pr-assets --configure KEY VALUE`
+# or update the config file manually
+#
+# -------------------------------------------
+# Configurable keys
+# -------------------------------------------
+#
+EOF
+
+    while IFS= read -r key; do
+      printf '# %s\n' "$key"
+      printf '# - Description: %s\n' "$(e2e_config_description "$key")"
+      printf '# - Default: %s\n' "$(e2e_format_config_value "$(e2e_config_default_value "$key")")"
+      printf '#\n'
+    done < <(e2e_supported_config_keys)
+
+    cat <<'EOF'
+# -------------------------------------------
+# Configured keys
+# -------------------------------------------
+#
+EOF
+
+    while IFS= read -r key; do
+      value=""
+
+      if [[ -n "$unset_key" && "$key" == "$unset_key" ]]; then
+        continue
+      fi
+
+      if [[ -n "$override_key" && "$key" == "$override_key" ]]; then
+        value="$override_value"
+      elif value="$(e2e_config_value_for_key "$key" "$config_file")"; then
+        :
+      else
+        continue
+      fi
+
+      has_output=true
+      printf '%s=%s\n' "$key" "$(e2e_format_config_value "$value")"
+    done < <(e2e_supported_config_keys)
+
+    if [[ "$has_output" != "true" ]]; then
+      printf '# (none)\n'
+    fi
+  } > "$temp_file"
+
+  mv "$temp_file" "$config_file"
+}
+
+show_config() {
+  local config_file="$1"
+  write_config_file "$config_file"
+
+  cat "$config_file"
+}
+
+CONFIG_FILE="$(e2e_config_file)"
+
+case "${1:-}" in
+  --help|-h|"")
+    usage
+    ;;
+  --config-path)
+    printf '%s\n' "$CONFIG_FILE"
+    ;;
+  --show-config)
+    show_config "$CONFIG_FILE"
+    ;;
+  --configure)
+    if [[ $# -ne 3 ]]; then
+      echo "Error: --configure requires KEY and VALUE" >&2
+      usage >&2
+      exit 1
+    fi
+
+    if ! e2e_is_supported_config_key "$2"; then
+      echo "Error: unsupported config key: $2" >&2
+      exit 1
+    fi
+
+    write_config_file "$CONFIG_FILE" "$2" "$3"
+    show_config "$CONFIG_FILE"
+    ;;
+  --unset)
+    if [[ $# -ne 2 ]]; then
+      echo "Error: --unset requires KEY" >&2
+      usage >&2
+      exit 1
+    fi
+
+    if ! e2e_is_supported_config_key "$2"; then
+      echo "Error: unsupported config key: $2" >&2
+      exit 1
+    fi
+
+    write_config_file "$CONFIG_FILE" "" "" "$2"
+    show_config "$CONFIG_FILE"
+    ;;
+  *)
+    echo "Unknown option: $1" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
