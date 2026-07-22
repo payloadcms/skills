@@ -348,6 +348,82 @@ function createKeyboardOverlayHelper(page, overlayState) {
   }
 }
 
+async function renderOverlayTokens(page, tokens) {
+  await page.evaluate((normalizedTokens) => {
+    const appendToDocument = (element) => {
+      if (document.documentElement) {
+        document.documentElement.appendChild(element)
+        return
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.documentElement?.appendChild(element)
+      }, { once: true })
+    }
+
+    let overlay = document.getElementById('payload-e2e-keyboard')
+
+    if (!overlay) {
+      overlay = document.createElement('div')
+      overlay.id = 'payload-e2e-keyboard'
+      Object.assign(overlay.style, {
+        alignItems: 'center',
+        background: 'rgba(17, 24, 39, .9)',
+        border: '1px solid rgba(255, 255, 255, .2)',
+        borderRadius: '12px',
+        bottom: '36px',
+        boxShadow: '0 10px 28px rgba(0, 0, 0, .3)',
+        color: '#fff',
+        display: 'flex',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontSize: '18px',
+        fontWeight: '600',
+        gap: '8px',
+        left: '50%',
+        lineHeight: '1.2',
+        opacity: '0',
+        padding: '10px 14px',
+        pointerEvents: 'none',
+        position: 'fixed',
+        transform: 'translateX(-50%)',
+        transition: 'opacity 160ms ease',
+        zIndex: '2147483647',
+      })
+      appendToDocument(overlay)
+    }
+
+    const elements = []
+
+    normalizedTokens.forEach((token, index) => {
+      if (index > 0) {
+        const separator = document.createElement('span')
+        separator.textContent = '+'
+        separator.style.opacity = '.7'
+        elements.push(separator)
+      }
+
+      const keycap = document.createElement('span')
+      keycap.textContent = token
+      Object.assign(keycap.style, {
+        background: 'rgba(255, 255, 255, .14)',
+        border: '1px solid rgba(255, 255, 255, .28)',
+        borderRadius: '6px',
+        boxShadow: 'inset 0 -1px 0 rgba(255, 255, 255, .1)',
+        padding: '3px 8px',
+        whiteSpace: 'nowrap',
+      })
+      elements.push(keycap)
+    })
+
+    overlay.replaceChildren(...elements)
+    overlay.style.opacity = normalizedTokens.length > 0 ? '1' : '0'
+    window.clearTimeout(window.__payloadE2EKeyboardReplayHideTimer)
+    window.__payloadE2EKeyboardReplayHideTimer = window.setTimeout(() => {
+      overlay.style.opacity = '0'
+    }, 800)
+  }, tokens)
+}
+
 function runCommand(command, args) {
   const result = childProcess.spawnSync(command, args, {
     encoding: 'utf8',
@@ -370,6 +446,17 @@ function createRecordedVideoHelper({ record, replayLastOverlay, switchRecordingT
 
   return {
     async waitForPage(targetPage) {
+      if (targetPage.url() === 'about:blank') {
+        await targetPage.waitForURL((url) => url.toString() !== 'about:blank', {
+          timeout: 5000,
+        }).catch(() => {
+          // Some popup flows never leave about:blank; fall back to the current document state.
+        })
+      }
+
+      await targetPage.waitForLoadState('domcontentloaded').catch(() => {
+        // Some pages may already be loaded or navigate too quickly to observe a fresh state transition.
+      })
       await switchRecordingTo(targetPage)
       await replayLastOverlay(targetPage)
     },
@@ -514,19 +601,29 @@ async function main() {
   let activeRecordedPage = null
 
   const registerRecordedPage = async (targetPage) => {
-    if (!record || pageMetadata.has(targetPage)) {
+    if (!record) {
       return pageMetadata.get(targetPage)
     }
 
-    const metadata = {
-      createdAtMs: Date.now(),
-      index: pageOrder.length,
-      keyboardOverlay: null,
-      page: targetPage,
+    let metadata = pageMetadata.get(targetPage)
+
+    if (!metadata) {
+      metadata = {
+        bringToFrontWrapped: false,
+        createdAtMs: Date.now(),
+        index: pageOrder.length,
+        isInitialized: false,
+        keyboardOverlay: null,
+        page: targetPage,
+      }
+
+      pageOrder.push(metadata)
+      pageMetadata.set(targetPage, metadata)
     }
 
-    pageOrder.push(metadata)
-    pageMetadata.set(targetPage, metadata)
+    if (metadata.isInitialized) {
+      return metadata
+    }
 
     await installInteractionOverlays(targetPage)
 
@@ -535,12 +632,17 @@ async function main() {
     metadata.keyboardOverlay = targetKeyboardOverlay
     installRecordedActionWrappers(targetPage, targetCursor, targetKeyboardOverlay)
 
-    const originalBringToFront = targetPage.bringToFront.bind(targetPage)
-    targetPage.bringToFront = async (...args) => {
-      const result = await originalBringToFront(...args)
-      await switchRecordingTo(targetPage)
-      return result
+    if (!metadata.bringToFrontWrapped) {
+      const originalBringToFront = targetPage.bringToFront.bind(targetPage)
+      targetPage.bringToFront = async (...args) => {
+        const result = await originalBringToFront(...args)
+        await switchRecordingTo(targetPage)
+        return result
+      }
+      metadata.bringToFrontWrapped = true
     }
+
+    metadata.isInitialized = true
 
     return metadata
   }
@@ -581,7 +683,8 @@ async function main() {
       return
     }
 
-    await metadata.keyboardOverlay.show(overlayState.lastShownTokens)
+    await installInteractionOverlays(targetPage)
+    await renderOverlayTokens(targetPage, overlayState.lastShownTokens)
   }
 
   if (record) {
