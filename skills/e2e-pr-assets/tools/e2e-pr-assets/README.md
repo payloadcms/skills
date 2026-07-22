@@ -56,6 +56,7 @@ Environment variables still override config values for one-off runs, so commands
 ```bash
 bash tools/e2e-pr-assets/check.sh
 bash tools/e2e-pr-assets/bin/e2e-run-script tools/e2e-pr-assets/test/keyboard-overlay.scenario.mjs --repo . --label keyboard-overlay-test --record
+bash tools/e2e-pr-assets/bin/e2e-run-script tools/e2e-pr-assets/test/popup-overlay.scenario.mjs --repo . --label popup-overlay-test --record
 ```
 
 ## Recording Plan
@@ -93,5 +94,6 @@ Before recording, create a temporary local `recording-plan.md` outside the repo 
 - `e2e-attach-pr --plan-file /path/to/recording-plan.md` copies the plan's `Before` and `After` sections into hidden HTML comments in the PR body, directly below the visible `### Before` and `### After` headings.
 - Prefer final proof lines like `Show the document card with the published title. (Incorrect, should be draft title)` and `Show the document card with the draft title. (Correct, shows draft title)` so the hidden comments explain the bug/fix clearly in edit mode.
 - `e2e-convert-video` trims the initial blank lead-in by default and can extend that trim automatically when the first meaningful scene change happens later than the standard 1-second startup buffer.
+- `video?.waitForPage(newTab)` stitches a popup/new-tab beat into the exported recording and replays the last visible command overlay on that stitched page, so cues like `Cmd/Ctrl + Click` stay visible during the handoff.
 - When the opening poster matters, inspect the first decoded MP4 frame after conversion and before upload. The first frame should already be meaningful UI, not a white loading spinner or blank transition frame.
 - If `h264_videotoolbox` is available but fails during conversion, `e2e-convert-video` automatically retries with `libx264`.

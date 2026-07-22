@@ -99,7 +99,7 @@ Do not start recording until the plan is specific enough that another agent coul
 
 ## Video Mode Workflow
 
-Recorded `e2e-run-script` scenarios automatically show keycaps for `locator.press`, `page.press`, `page.keyboard.press/down/up`, and clicks with Playwright `modifiers`. For example, `previewButton.click({ modifiers: ['ControlOrMeta'] })` appears as `⌘ + Click` on macOS or `Ctrl + Click` elsewhere. Text supplied through `fill`, `type`, `pressSequentially`, and `insertText` is never shown.
+Recorded `e2e-run-script` scenarios automatically show keycaps for `locator.press`, `page.press`, `page.keyboard.press/down/up`, and clicks with Playwright `modifiers`. For example, `previewButton.click({ modifiers: ['ControlOrMeta'] })` appears as `⌘ + Click` on macOS or `Ctrl + Click` elsewhere. Held modifier keys followed by a click also render as modifier + `Click` in the overlay. Text supplied through `fill`, `type`, `pressSequentially`, and `insertText` is never shown.
 
 ### Preferred: focused `_community` evidence fixture
 
@@ -147,9 +147,12 @@ Prefer this path early when the goal is explanatory evidence, not just pass/fail
 4. The scenario must export a function:
 
 ```js
-export default async function scenario({ baseURL, cursor, expect, keyboardOverlay, label, page, record, repoRoot }) {
+export default async function scenario({ baseURL, cursor, expect, keyboardOverlay, label, page, record, repoRoot, video }) {
   // Seed data, log in, navigate the admin UI, and perform the exact evidence flow.
   // Optional: await cursor?.moveTo('#important-field') before pausing for emphasis.
+  // Once a target is visible, move to it promptly and keep proof-beat pauses short so the interaction still feels human.
+  // Optional: await video?.waitForPage(newTab) to stitch a popup/new-tab beat into the exported recording.
+  // The last visible command overlay is replayed on the stitched page, so modifier-click cues like Cmd/Ctrl + Click stay readable.
   // Optional: await keyboardOverlay?.show('Custom action') when no Playwright action can express it.
 }
 ```

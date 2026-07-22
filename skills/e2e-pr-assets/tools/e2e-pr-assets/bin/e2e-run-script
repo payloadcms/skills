@@ -75,6 +75,7 @@ export HEADED
 
 node <<'NODE'
 const fs = require('node:fs')
+const childProcess = require('node:child_process')
 const os = require('node:os')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
@@ -161,7 +162,7 @@ async function installInteractionOverlays(page) {
           cursor.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, .35), 0 8px 18px rgba(0, 0, 0, .25)'
           cursor.style.pointerEvents = 'none'
           cursor.style.transform = 'translate(-50%, -50%)'
-          cursor.style.transition = 'left 180ms ease, top 180ms ease, transform 100ms ease'
+          cursor.style.transition = 'left 130ms ease, top 130ms ease, transform 100ms ease'
           cursor.style.zIndex = '2147483647'
           appendToDocument(cursor)
         }
@@ -290,8 +291,8 @@ async function createCursorHelper(page) {
     await page.evaluate(({ x: cursorX, y: cursorY }) => {
       window.__payloadE2ECursor?.moveTo(cursorX, cursorY)
     }, { x, y })
-    await page.mouse.move(x, y, { steps: 10 })
-    await page.waitForTimeout(220)
+    await page.mouse.move(x, y, { steps: 6 })
+    await page.waitForTimeout(90)
   }
 
   return {
@@ -315,9 +316,13 @@ async function createCursorHelper(page) {
   }
 }
 
-function createKeyboardOverlayHelper(page) {
+function createKeyboardOverlayHelper(page, overlayState) {
   const evaluate = async (method, command) => {
     const tokens = normalizeCommand(command)
+
+    if (method === 'show') {
+      overlayState.lastShownTokens = tokens
+    }
 
     await page.evaluate(({ methodName, normalizedTokens }) => {
       const controller = window.__payloadE2EKeyboard
@@ -343,8 +348,38 @@ function createKeyboardOverlayHelper(page) {
   }
 }
 
+function runCommand(command, args) {
+  const result = childProcess.spawnSync(command, args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+
+  if (result.status !== 0) {
+    const stderr = result.stderr?.trim()
+    const stdout = result.stdout?.trim()
+    throw new Error(stderr || stdout || `${command} exited with status ${result.status}`)
+  }
+
+  return result.stdout.trim()
+}
+
+function createRecordedVideoHelper({ record, replayLastOverlay, switchRecordingTo }) {
+  if (!record) {
+    return null
+  }
+
+  return {
+    async waitForPage(targetPage) {
+      await switchRecordingTo(targetPage)
+      await replayLastOverlay(targetPage)
+    },
+  }
+}
+
 function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   const locatorPrototype = Object.getPrototypeOf(page.locator('body'))
+  const heldKeys = new Set()
+  const modifierKeys = new Set(['Alt', 'Control', 'ControlOrMeta', 'Meta', 'Shift'])
   const originalLocatorClick = locatorPrototype.click
   const originalLocatorFill = locatorPrototype.fill
   const originalLocatorPress = locatorPrototype.press
@@ -366,6 +401,13 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   const showModifiedClick = async (options) => {
     if (options?.modifiers?.length > 0) {
       await showCommand([...options.modifiers, 'Click'])
+      return
+    }
+
+    const heldModifiers = [...heldKeys].filter((key) => modifierKeys.has(key))
+
+    if (heldModifiers.length > 0) {
+      await showCommand([...heldModifiers, 'Click'])
     }
   }
 
@@ -420,6 +462,8 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   page.keyboard.down = async (key) => {
+    heldKeys.add(key)
+
     try {
       await keyboardOverlay.down(key)
     } catch (_) {
@@ -435,6 +479,7 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
 
   page.keyboard.up = async (key) => {
     const result = await originalKeyboardUp(key)
+    heldKeys.delete(key)
 
     try {
       await keyboardOverlay.up(key)
@@ -460,19 +505,108 @@ async function main() {
     viewport: { width: 1440, height: 900 },
   })
 
+  const overlayState = {
+    lastShownTokens: null,
+  }
+  const pageOrder = []
+  const pageMetadata = new WeakMap()
+  const recordingSegments = []
+  let activeRecordedPage = null
+
+  const registerRecordedPage = async (targetPage) => {
+    if (!record || pageMetadata.has(targetPage)) {
+      return pageMetadata.get(targetPage)
+    }
+
+    const metadata = {
+      createdAtMs: Date.now(),
+      index: pageOrder.length,
+      keyboardOverlay: null,
+      page: targetPage,
+    }
+
+    pageOrder.push(metadata)
+    pageMetadata.set(targetPage, metadata)
+
+    await installInteractionOverlays(targetPage)
+
+    const targetCursor = await createCursorHelper(targetPage)
+    const targetKeyboardOverlay = createKeyboardOverlayHelper(targetPage, overlayState)
+    metadata.keyboardOverlay = targetKeyboardOverlay
+    installRecordedActionWrappers(targetPage, targetCursor, targetKeyboardOverlay)
+
+    const originalBringToFront = targetPage.bringToFront.bind(targetPage)
+    targetPage.bringToFront = async (...args) => {
+      const result = await originalBringToFront(...args)
+      await switchRecordingTo(targetPage)
+      return result
+    }
+
+    return metadata
+  }
+
+  const switchRecordingTo = async (targetPage) => {
+    if (!record) {
+      return
+    }
+
+    await registerRecordedPage(targetPage)
+
+    const nowMs = Date.now()
+
+    if (activeRecordedPage) {
+      const currentSegment = recordingSegments[recordingSegments.length - 1]
+
+      if (currentSegment && currentSegment.page === activeRecordedPage && currentSegment.endMs === null) {
+        currentSegment.endMs = nowMs
+      }
+    }
+
+    activeRecordedPage = targetPage
+    recordingSegments.push({
+      endMs: null,
+      page: targetPage,
+      startMs: nowMs,
+    })
+  }
+
+  const replayLastOverlay = async (targetPage) => {
+    if (!record || !overlayState.lastShownTokens?.length) {
+      return
+    }
+
+    const metadata = pageMetadata.get(targetPage)
+
+    if (!metadata?.keyboardOverlay) {
+      return
+    }
+
+    await metadata.keyboardOverlay.show(overlayState.lastShownTokens)
+  }
+
+  if (record) {
+    context.on('page', (targetPage) => {
+      registerRecordedPage(targetPage).catch(() => {
+        // Recording helpers are best-effort and must not crash the run mid-navigation.
+      })
+    })
+  }
+
   const page = await context.newPage()
   const pageVideo = record ? page.video() : null
-
-  if (record) {
-    await installInteractionOverlays(page)
-  }
-
   const cursor = record ? await createCursorHelper(page) : null
-  const keyboardOverlay = record ? createKeyboardOverlayHelper(page) : null
+  const keyboardOverlay = record ? createKeyboardOverlayHelper(page, overlayState) : null
 
   if (record) {
-    installRecordedActionWrappers(page, cursor, keyboardOverlay)
+    await registerRecordedPage(page)
+    await switchRecordingTo(page)
   }
+
+  const video = createRecordedVideoHelper({
+    record,
+    replayLastOverlay,
+    switchRecordingTo,
+  })
 
   try {
     await scenario({
@@ -485,19 +619,98 @@ async function main() {
       page,
       record,
       repoRoot,
+      video,
     })
   } finally {
+    if (record && activeRecordedPage) {
+      const currentSegment = recordingSegments[recordingSegments.length - 1]
+
+      if (currentSegment && currentSegment.endMs === null) {
+        currentSegment.endMs = Date.now()
+      }
+    }
+
     await context.close()
   }
 
   if (record) {
+    const destination = `/tmp/payload-e2e-${label}.webm`
+
     if (!pageVideo) {
       throw new Error(`Recording was enabled but no .webm was created in ${videoDir}`)
     }
 
-    const videoPath = await pageVideo.path()
-    const destination = `/tmp/payload-e2e-${label}.webm`
-    fs.copyFileSync(videoPath, destination)
+    const recordedPages = await Promise.all(pageOrder.map(async (metadata) => ({
+      ...metadata,
+      videoPath: await metadata.page.video()?.path(),
+    })))
+
+    const usableSegments = recordingSegments.filter((segment) => segment.endMs !== null)
+
+    if (usableSegments.length <= 1) {
+      const videoPath = await pageVideo.path()
+      fs.copyFileSync(videoPath, destination)
+      console.log(`Video saved to ${destination}`)
+      fs.rmSync(userDataDir, { force: true, recursive: true })
+      return
+    }
+
+    const stitchDir = fs.mkdtempSync(path.join(os.tmpdir(), `payload-e2e-stitch-${label}-`))
+    const concatListPath = path.join(stitchDir, 'concat.txt')
+    const concatEntries = []
+
+    usableSegments.forEach((segment, index) => {
+      const metadata = pageMetadata.get(segment.page)
+
+      if (!metadata) {
+        throw new Error(`Missing recording metadata for stitched segment ${index + 1}`)
+      }
+
+      const recordedPage = recordedPages.find((entry) => entry.index === metadata.index)
+
+      if (!recordedPage?.videoPath) {
+        throw new Error(`Missing video path for stitched segment ${index + 1}`)
+      }
+
+      const relativeStartSeconds = Math.max(0, (segment.startMs - metadata.createdAtMs) / 1000)
+      const relativeEndSeconds = Math.max(relativeStartSeconds + 0.05, (segment.endMs - metadata.createdAtMs) / 1000)
+      const segmentPath = path.join(stitchDir, `segment-${String(index + 1).padStart(2, '0')}.webm`)
+
+      runCommand('ffmpeg', [
+        '-y',
+        '-ss',
+        relativeStartSeconds.toFixed(3),
+        '-to',
+        relativeEndSeconds.toFixed(3),
+        '-i',
+        recordedPage.videoPath,
+        '-an',
+        '-c:v',
+        'libvpx',
+        '-b:v',
+        '2M',
+        segmentPath,
+      ])
+
+      concatEntries.push(`file '${segmentPath.replace(/'/g, "'\\''")}'`)
+    })
+
+    fs.writeFileSync(concatListPath, `${concatEntries.join('\n')}\n`)
+
+    runCommand('ffmpeg', [
+      '-y',
+      '-f',
+      'concat',
+      '-safe',
+      '0',
+      '-i',
+      concatListPath,
+      '-c',
+      'copy',
+      destination,
+    ])
+
+    fs.rmSync(stitchDir, { force: true, recursive: true })
     console.log(`Video saved to ${destination}`)
   }
 
