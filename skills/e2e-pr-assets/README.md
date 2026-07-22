@@ -7,6 +7,7 @@ Contributor-focused skill for producing reviewer-friendly before/after admin UI 
 The `e2e-pr-assets` skill bundles:
 
 - `SKILL.md` with the end-to-end workflow and decision points
+- `tools/e2e-pr-assets/bin/e2e-pr-assets` for help and local default configuration
 - `tools/e2e-pr-assets/bin/` helper commands for recording, conversion, upload, and PR-body updates
 - `tools/e2e-pr-assets/check.sh` and `tools/e2e-pr-assets/install.sh` bootstrap scripts
 - `tools/e2e-pr-assets/test/keyboard-overlay.scenario.mjs` as a lightweight recording fixture
@@ -41,6 +42,13 @@ When working directly from this repository instead of an installed local skill, 
 bash skills/e2e-pr-assets/tools/e2e-pr-assets/check.sh
 ```
 
+To configure repeat-use defaults after install:
+
+```bash
+e2e-pr-assets --configure GITHUB_BROWSER_PROFILE /path/to/github-profile
+e2e-pr-assets --show-config
+```
+
 ## Workflow Highlights
 
 - Write a temporary local recording plan with separate `Before` and `After` sections.
@@ -59,6 +67,7 @@ skills/e2e-pr-assets/
     ├── check.sh
     ├── install.sh
     ├── bin/
+    ├── lib/
     └── test/
 ```
 

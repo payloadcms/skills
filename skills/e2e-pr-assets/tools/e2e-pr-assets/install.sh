@@ -35,6 +35,7 @@ SCRIPTS=(
   e2e-convert-video
   e2e-github-login-profile
   e2e-infer-suite
+  e2e-pr-assets
   e2e-run
   e2e-run-script
   e2e-upload-github-attachments

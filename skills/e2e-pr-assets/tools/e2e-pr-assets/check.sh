@@ -30,6 +30,7 @@ SCRIPTS=(
   e2e-convert-video
   e2e-github-login-profile
   e2e-infer-suite
+  e2e-pr-assets
   e2e-run
   e2e-run-script
   e2e-upload-github-attachments
@@ -42,6 +43,11 @@ for script_name in "${SCRIPTS[@]}"; do
     missing=1
   fi
 done
+
+if [[ ! -f "${REPO_ROOT}/tools/e2e-pr-assets/lib/config.sh" ]]; then
+  echo "Missing shared config helper: ${REPO_ROOT}/tools/e2e-pr-assets/lib/config.sh" >&2
+  missing=1
+fi
 
 if ! gh auth status >/dev/null 2>&1; then
   echo "Warning: gh is not authenticated. Run: gh auth login" >&2

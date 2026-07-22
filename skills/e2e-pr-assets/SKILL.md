@@ -81,12 +81,19 @@ Do not start recording until the plan is specific enough that another agent coul
   - Prefer `e2e-run-script` for video capture in that case.
 - Helper commands installed by the bundle:
   - `e2e-infer-suite`
+  - `e2e-pr-assets`
   - `e2e-run`
   - `e2e-run-script`
   - `e2e-convert-video`
   - `e2e-upload-github-attachments`
   - `e2e-capture-screenshot`
   - `e2e-attach-pr`
+- For repeat use, prefer the top-level config helper over retyping env vars:
+  - `e2e-pr-assets --configure GITHUB_BROWSER_PROFILE /path/to/github-profile`
+  - `e2e-pr-assets --configure E2E_GITHUB_AUTO_REMOVE_PROFILE 0`
+  - `e2e-pr-assets --show-config`
+  - Config file path: `~/.config/e2e-pr-assets/config` or `$XDG_CONFIG_HOME/e2e-pr-assets/config`
+  - Explicit env vars still override config values for one-off runs.
 
 ## Video Mode Workflow
 
@@ -190,6 +197,7 @@ export default async function scenario({ baseURL, cursor, expect, keyboardOverla
 10. Upload through GitHub's attachment UI to get `https://github.com/user-attachments/assets/...` URLs:
    - `e2e-upload-github-attachments <pr-number> <owner/repo> /tmp/payload-e2e-before.mp4 /tmp/payload-e2e-after.mp4`
    - If the configured browser profile is not signed in, the script automatically opens the login flow, waits for manual sign-in detection, then retries upload once.
+   - Prefer storing repeat-use defaults with `e2e-pr-assets --configure ...`; use env vars only for one-off overrides.
    - Optional profile override: `GITHUB_BROWSER_PROFILE=/path/to/profile`
    - To disable automatic login flow, set `E2E_GITHUB_AUTO_LOGIN=0`.
 11. Attach the returned user-attachment URLs to the PR body:
@@ -231,5 +239,6 @@ fi
 - If `e2e-convert-video` fails with `h264_videotoolbox`, retry conversion with `libx264` instead of re-recording. Hardware H.264 availability is not the same as hardware H.264 reliability.
 - Video mode is complete only when the PR body contains `github.com/user-attachments/assets` video links. `.webm` links or raw `.mp4` links are failed video-mode results.
 - Media artifacts are stored in `/tmp` and are automatically removed after `e2e-attach-pr` completes by default. Disable with `E2E_MEDIA_AUTO_CLEANUP=0`.
+- Reusable defaults can live in the config file managed by `e2e-pr-assets --configure`, which keeps install-time instructions shorter and easier to scan.
 - Payload dev/test commands may rewrite `tsconfig.base.json` aliases such as `@payload-config`. After recording, restore that drift before finalizing.
 - Never store PR evidence media in repository branches such as `.github/e2e-assets/...` or `e2e-assets-<pr>`. Those commits pollute the PR timeline and file list. If GitHub attachment upload fails, fix the upload flow instead of committing media files.

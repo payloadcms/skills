@@ -14,6 +14,7 @@
     "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-convert-video",
     "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-github-login-profile",
     "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-infer-suite",
+    "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-pr-assets",
     "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-run",
     "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-run-script",
     "skills/e2e-pr-assets/tools/e2e-pr-assets/bin/e2e-upload-github-attachments"
