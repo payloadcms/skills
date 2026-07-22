@@ -89,6 +89,7 @@ const record = process.env.RECORD === 'true'
 const headed = process.env.HEADED === 'true'
 const videoDir = path.join('/tmp', `payload-e2e-script-${Date.now()}`)
 const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'payload-e2e-script-profile-'))
+const overlayVisibleMs = 1200
 
 const keyLabels = {
   Alt: 'Alt',
@@ -132,7 +133,7 @@ function normalizeCommand(command) {
 }
 
 async function installInteractionOverlays(page) {
-  const interactionScript = () => {
+  const interactionScript = ({ visibleDurationMs }) => {
     const appendToDocument = (element) => {
       if (document.documentElement) {
         document.documentElement.appendChild(element)
@@ -181,6 +182,7 @@ async function installInteractionOverlays(page) {
     window.__payloadE2EKeyboard = {
       held: [],
       hideTimer: null,
+      lastShownTokens: [],
       ensure() {
         let overlay = document.getElementById('payload-e2e-keyboard')
 
@@ -248,10 +250,13 @@ async function installInteractionOverlays(page) {
         if (shouldLinger && this.held.length === 0 && visibleTokens.length > 0) {
           this.hideTimer = window.setTimeout(() => {
             overlay.style.opacity = '0'
-          }, 800)
+            overlay.replaceChildren()
+            this.lastShownTokens = []
+          }, visibleDurationMs)
         }
       },
       show(tokens) {
+        this.lastShownTokens = [...new Set([...this.held, ...tokens])]
         this.render(tokens)
       },
       down(token) {
@@ -262,13 +267,17 @@ async function installInteractionOverlays(page) {
       },
       up(token) {
         this.held = this.held.filter((heldKey) => heldKey !== token)
-        this.render(this.held.length > 0 ? [] : [token])
+        const releasedTokens = this.lastShownTokens.length > 0 ? this.lastShownTokens : [token]
+
+        this.render(this.held.length > 0 ? [] : releasedTokens)
       },
     }
   }
 
-  await page.addInitScript(interactionScript)
-  await page.evaluate(interactionScript)
+  const interactionOptions = { visibleDurationMs: overlayVisibleMs }
+
+  await page.addInitScript(interactionScript, interactionOptions)
+  await page.evaluate(interactionScript, interactionOptions)
 }
 
 async function createCursorHelper(page) {
@@ -338,11 +347,26 @@ function createKeyboardOverlayHelper(page, overlayState) {
     async up(key) {
       await evaluate('up', key)
     },
+    async waitUntilHidden() {
+      if (page.isClosed()) {
+        return
+      }
+
+      await page.waitForFunction(() => {
+        const overlay = document.getElementById('payload-e2e-keyboard')
+
+        return !overlay || overlay.style.opacity === '0'
+      }, null, { timeout: overlayVisibleMs + 5000 }).catch((error) => {
+        if (!page.isClosed()) {
+          throw error
+        }
+      })
+    },
   }
 }
 
 async function renderOverlayTokens(page, tokens) {
-  await page.evaluate((normalizedTokens) => {
+  await page.evaluate(({ normalizedTokens, visibleDurationMs }) => {
     const appendToDocument = (element) => {
       if (document.documentElement) {
         document.documentElement.appendChild(element)
@@ -413,8 +437,9 @@ async function renderOverlayTokens(page, tokens) {
     window.clearTimeout(window.__payloadE2EKeyboardReplayHideTimer)
     window.__payloadE2EKeyboardReplayHideTimer = window.setTimeout(() => {
       overlay.style.opacity = '0'
-    }, 800)
-  }, tokens)
+      overlay.replaceChildren()
+    }, visibleDurationMs)
+  }, { normalizedTokens: tokens, visibleDurationMs: overlayVisibleMs })
 }
 
 function runCommand(command, args) {
@@ -432,13 +457,17 @@ function runCommand(command, args) {
   return result.stdout.trim()
 }
 
-function createRecordedVideoHelper({ record, replayLastOverlay, switchRecordingTo }) {
+function createRecordedVideoHelper({ record, replayLastOverlay, switchRecordingTo, waitForActiveOverlayIdle }) {
   if (!record) {
     return null
   }
 
   return {
-    async waitForPage(targetPage) {
+    async waitForPage(targetPage, options = {}) {
+      const { replayLastOverlay: shouldReplayLastOverlay = false } = options
+
+      await waitForActiveOverlayIdle()
+
       if (targetPage.url() === 'about:blank') {
         await targetPage.waitForURL((url) => url.toString() !== 'about:blank', {
           timeout: 5000,
@@ -451,7 +480,10 @@ function createRecordedVideoHelper({ record, replayLastOverlay, switchRecordingT
         // Some pages may already be loaded or navigate too quickly to observe a fresh state transition.
       })
       await switchRecordingTo(targetPage)
-      await replayLastOverlay(targetPage)
+
+      if (shouldReplayLastOverlay) {
+        await replayLastOverlay(targetPage)
+      }
     },
   }
 }
@@ -478,6 +510,12 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
     }
   }
 
+  const waitForOverlayIdle = async () => {
+    if (heldKeys.size === 0) {
+      await keyboardOverlay.waitUntilHidden()
+    }
+  }
+
   const showModifiedClick = async (options) => {
     if (options?.modifiers?.length > 0) {
       await showCommand([...options.modifiers, 'Click'])
@@ -492,6 +530,8 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   locatorPrototype.click = async function wrappedLocatorClick(...args) {
+    await waitForOverlayIdle()
+
     try {
       await cursor.moveTo(this)
     } catch (_) {
@@ -502,6 +542,8 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   locatorPrototype.fill = async function wrappedLocatorFill(...args) {
+    await waitForOverlayIdle()
+
     try {
       await cursor.moveTo(this)
     } catch (_) {
@@ -511,11 +553,14 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   locatorPrototype.press = async function wrappedLocatorPress(key, options) {
+    await waitForOverlayIdle()
     await showCommand(key)
     return originalLocatorPress.call(this, key, options)
   }
 
   page.click = async (selector, options) => {
+    await waitForOverlayIdle()
+
     try {
       await cursor.moveTo(selector)
     } catch (_) {
@@ -526,6 +571,8 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   page.fill = async (selector, value, options) => {
+    await waitForOverlayIdle()
+
     try {
       await cursor.moveTo(selector)
     } catch (_) {
@@ -535,11 +582,13 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   page.press = async (selector, key, options) => {
+    await waitForOverlayIdle()
     await showCommand(key)
     return originalPagePress(selector, key, options)
   }
 
   page.keyboard.down = async (key) => {
+    await waitForOverlayIdle()
     heldKeys.add(key)
 
     try {
@@ -551,6 +600,7 @@ function installRecordedActionWrappers(page, cursor, keyboardOverlay) {
   }
 
   page.keyboard.press = async (key, options) => {
+    await waitForOverlayIdle()
     await showCommand(key)
     return originalKeyboardPress(key, options)
   }
@@ -689,6 +739,16 @@ async function main() {
     await renderOverlayTokens(targetPage, overlayState.lastShownTokens)
   }
 
+  const waitForActiveOverlayIdle = async () => {
+    if (!record || !activeRecordedPage) {
+      return
+    }
+
+    const metadata = await registerRecordedPage(activeRecordedPage)
+
+    await metadata?.keyboardOverlay?.waitUntilHidden()
+  }
+
   if (record) {
     context.on('page', (targetPage) => {
       registerRecordedPage(targetPage).catch(() => {
@@ -711,6 +771,7 @@ async function main() {
     record,
     replayLastOverlay,
     switchRecordingTo,
+    waitForActiveOverlayIdle,
   })
 
   try {

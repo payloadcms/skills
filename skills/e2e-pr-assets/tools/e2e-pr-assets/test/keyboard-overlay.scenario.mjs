@@ -99,6 +99,7 @@ export default async function scenario({ cursor, expect, keyboardOverlay, page, 
   await expect(overlay).toContainText(process.platform === 'darwin' ? '⌘' : 'Ctrl')
   await expect(overlay).toContainText('Click')
   await page.keyboard.up(process.platform === 'darwin' ? 'Meta' : 'Control')
+  await expect(overlay).toContainText('Click')
 
   await page.locator('#private-input').fill('never-show-this-value')
   await page.locator('#private-input').pressSequentially('typed-secret')
@@ -116,4 +117,23 @@ export default async function scenario({ cursor, expect, keyboardOverlay, page, 
 
   await keyboardOverlay.show('Custom action')
   await expect(overlay).toContainText('Custom action')
+
+  await page.goto(`data:text/html,${encodeURIComponent(`
+    <button id="timed-shortcut" type="button">Timed shortcut</button>
+    <button id="next-action" type="button">Next action</button>
+  `)}`)
+
+  const modifiedClickStartedAt = Date.now()
+  await page.locator('#timed-shortcut').click({ modifiers: ['ControlOrMeta'] })
+  await page.locator('#next-action').click()
+  expect(Date.now() - modifiedClickStartedAt).toBeGreaterThanOrEqual(1100)
+
+  await page.keyboard.down(process.platform === 'darwin' ? 'Meta' : 'Control')
+  await page.locator('#timed-shortcut').click()
+  await page.keyboard.up(process.platform === 'darwin' ? 'Meta' : 'Control')
+  await expect(overlay).toContainText('Click')
+
+  const heldClickReleasedAt = Date.now()
+  await page.locator('#next-action').click()
+  expect(Date.now() - heldClickReleasedAt).toBeGreaterThanOrEqual(1100)
 }

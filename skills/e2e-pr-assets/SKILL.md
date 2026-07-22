@@ -152,7 +152,8 @@ export default async function scenario({ baseURL, cursor, expect, keyboardOverla
   // Optional: await cursor?.moveTo('#important-field') before pausing for emphasis.
   // Once a target is visible, move to it promptly and keep proof-beat pauses short so the interaction still feels human.
   // Optional: await video?.waitForPage(newTab) to stitch a popup/new-tab beat into the exported recording.
-  // The last visible command overlay is replayed on the stitched page, so modifier-click cues like Cmd/Ctrl + Click stay readable.
+  // Action overlays remain readable and block the next visible interaction or page stitch until they disappear.
+  // Stitched pages start without the previous command; opt in with video?.waitForPage(newTab, { replayLastOverlay: true }).
   // Optional: await keyboardOverlay?.show('Custom action') when no Playwright action can express it.
 }
 ```
