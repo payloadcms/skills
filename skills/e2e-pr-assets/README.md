@@ -49,6 +49,8 @@ e2e-pr-assets --configure GITHUB_BROWSER_PROFILE /path/to/github-profile
 e2e-pr-assets --show-config
 ```
 
+The saved config file is intentionally sparse and stores only explicit overrides. Use `e2e-pr-assets --show-config` to inspect the effective values and where each one comes from.
+
 ## Workflow Highlights
 
 - Write a temporary local recording plan with separate `Before` and `After` sections.

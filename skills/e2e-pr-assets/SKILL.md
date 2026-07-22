@@ -93,6 +93,8 @@ Do not start recording until the plan is specific enough that another agent coul
   - `e2e-pr-assets --configure E2E_GITHUB_AUTO_REMOVE_PROFILE 0`
   - `e2e-pr-assets --show-config`
   - Config file path: `~/.config/e2e-pr-assets/config` or `$XDG_CONFIG_HOME/e2e-pr-assets/config`
+  - The config file stays sparse: it stores only keys you explicitly set.
+  - `e2e-pr-assets --show-config` is the effective-value view: it shows whether each setting currently comes from `env`, `config`, or `default`, with short comments.
   - Explicit env vars still override config values for one-off runs.
 
 ## Video Mode Workflow
@@ -239,6 +241,6 @@ fi
 - If `e2e-convert-video` fails with `h264_videotoolbox`, retry conversion with `libx264` instead of re-recording. Hardware H.264 availability is not the same as hardware H.264 reliability.
 - Video mode is complete only when the PR body contains `github.com/user-attachments/assets` video links. `.webm` links or raw `.mp4` links are failed video-mode results.
 - Media artifacts are stored in `/tmp` and are automatically removed after `e2e-attach-pr` completes by default. Disable with `E2E_MEDIA_AUTO_CLEANUP=0`.
-- Reusable defaults can live in the config file managed by `e2e-pr-assets --configure`, which keeps install-time instructions shorter and easier to scan.
+- Reusable defaults can live in the sparse config file managed by `e2e-pr-assets --configure`, while `e2e-pr-assets --show-config` remains the readable place to inspect defaults and comments.
 - Payload dev/test commands may rewrite `tsconfig.base.json` aliases such as `@payload-config`. After recording, restore that drift before finalizing.
 - Never store PR evidence media in repository branches such as `.github/e2e-assets/...` or `e2e-assets-<pr>`. Those commits pollute the PR timeline and file list. If GitHub attachment upload fails, fix the upload flow instead of committing media files.

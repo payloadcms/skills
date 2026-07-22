@@ -34,40 +34,6 @@ Environment variables still override config values for one-off runs.
 EOF
 }
 
-config_value_for_key() {
-  local lookup_key="$1"
-  local config_file="$2"
-  local value=""
-
-  if [[ ! -f "$config_file" ]]; then
-    return 1
-  fi
-
-  set +e
-  value="$(
-    CONFIG_FILE="$config_file" CONFIG_KEY="$lookup_key" bash <<'EOF'
-set -euo pipefail
-
-# shellcheck source=/dev/null
-source "$CONFIG_FILE"
-
-if [[ -z "${!CONFIG_KEY+x}" ]]; then
-  exit 1
-fi
-
-printf '%s' "${!CONFIG_KEY}"
-EOF
-  )"
-  local exit_code=$?
-  set -e
-
-  if [[ "$exit_code" -ne 0 ]]; then
-    return 1
-  fi
-
-  printf '%s' "$value"
-}
-
 write_config_file() {
   local config_file="$1"
   local override_key="${2:-}"
@@ -76,29 +42,12 @@ write_config_file() {
   local temp_file=""
   local key=""
   local value=""
+  local has_output=false
 
   mkdir -p "$(dirname "$config_file")"
   temp_file="$(mktemp)"
 
   {
-    cat <<'EOF'
-# e2e-pr-assets configuration
-# Environment variables override values in this file.
-# Update values with `e2e-pr-assets --configure KEY VALUE`.
-#
-# Common keys:
-# - GITHUB_BROWSER_PROFILE: path to a signed-in GitHub browser profile
-# - E2E_GITHUB_AUTO_LOGIN: 1 to auto-open GitHub login when needed
-# - E2E_GITHUB_AUTO_REMOVE_PROFILE: 1 to delete temporary auth profiles after upload
-# - E2E_GITHUB_FORCE_REMOVE_PROFILE: 1 to allow deleting non-/tmp profiles
-# - E2E_MEDIA_AUTO_CLEANUP: 1 to remove /tmp media artifacts after attach
-# - E2E_VIDEO_TRIM_START_SECONDS: initial trim before MP4 conversion
-# - E2E_VIDEO_AUTO_SCENE_TRIM: 1 to auto-extend trim past blank lead-in
-# - E2E_VIDEO_SCENE_THRESHOLD: scene-detect sensitivity for auto-trim
-# - E2E_VIDEO_SCENE_PREROLL_SECONDS: preserve a small buffer before first scene
-
-EOF
-
     while IFS= read -r key; do
       value=""
 
@@ -108,27 +57,41 @@ EOF
 
       if [[ -n "$override_key" && "$key" == "$override_key" ]]; then
         value="$override_value"
-      elif value="$(config_value_for_key "$key" "$config_file")"; then
+      elif value="$(e2e_config_value_for_key "$key" "$config_file")"; then
         :
       else
         continue
       fi
 
+      has_output=true
       printf '%s=%s\n' "$key" "$(e2e_format_config_value "$value")"
     done < <(e2e_supported_config_keys)
   } > "$temp_file"
+
+  if [[ "$has_output" != "true" ]]; then
+    rm -f "$temp_file" "$config_file"
+    return
+  fi
 
   mv "$temp_file" "$config_file"
 }
 
 show_config() {
   local config_file="$1"
+  local key=""
+  local value=""
+  local source=""
+  local description=""
 
-  if [[ ! -f "$config_file" ]]; then
-    write_config_file "$config_file"
-  fi
+  printf '# Config file: %s\n' "$config_file"
+  printf '# Effective values for e2e-pr-assets helpers.\n'
 
-  cat "$config_file"
+  while IFS= read -r key; do
+    value="$(e2e_effective_config_value "$key" "$config_file" | awk -F '\t' 'NR == 1 { print $1 }')"
+    source="$(e2e_effective_config_value "$key" "$config_file" | awk -F '\t' 'NR == 1 { print $2 }')"
+    description="$(e2e_config_description "$key")"
+    printf '%s=%s  # %s; %s\n' "$key" "$(e2e_format_config_value "$value")" "$source" "$description"
+  done < <(e2e_supported_config_keys)
 }
 
 CONFIG_FILE="$(e2e_config_file)"
