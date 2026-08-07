@@ -7,6 +7,16 @@ description: Use when working with Payload projects (payload.config.ts, collecti
 
 Payload is a Next.js native CMS with TypeScript-first architecture, providing admin panel, database management, REST/GraphQL APIs, authentication, and file storage.
 
+## Choose the Authoritative Skill
+
+Before applying this guidance, resolve the `payload` package from the project or workspace that contains the Payload application. Do not assume a monorepo root owns the dependency.
+
+- If this `SKILL.md` is already under that package at `node_modules/payload/skills/payload/SKILL.md`, continue with it.
+- If this is a separately installed copy and the package contains `skills/payload/SKILL.md`, read that bundled file and use it exclusively. Its guidance was released with the installed Payload version, while this standalone copy may track a different version.
+- If the installed package does not contain the bundled skill, continue with this standalone copy as a legacy fallback. Read `node_modules/payload/package.json` when the exact version matters, and verify version-sensitive APIs against that release's documentation.
+
+Detect the bundled file rather than relying on a hard-coded version cutoff because availability can differ across stable, canary, and backported releases. Do not combine the bundled and standalone copies.
+
 ## Quick Reference
 
 | Task                     | Solution                                  | Details                                                                                                                          |

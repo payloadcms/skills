@@ -4,15 +4,53 @@ A collection of skills for AI coding agents. Skills are packaged instructions an
 
 ## Installation
 
+### Version-matched Payload skill (recommended)
+
+Newer Payload releases ship this skill inside the `payload` npm package. Prefer that copy for application development because its guidance was released with the version of Payload installed in the project.
+
+Check whether the installed package includes it:
+
+```bash
+test -f node_modules/payload/skills/payload/SKILL.md
+```
+
+Agents do not automatically discover skills under `node_modules`. For an existing project, add this pointer at the project root:
+
+```md
+<!-- AGENTS.md -->
+# AI Agent
+
+Before performing any Payload-related work, read and follow `node_modules/payload/skills/payload/SKILL.md`.
+Treat that bundled skill as authoritative for the installed Payload version.
+```
+
+Claude Code reads `CLAUDE.md`, so add an import for the shared instructions:
+
+```md
+<!-- CLAUDE.md -->
+@AGENTS.md
+```
+
+In a monorepo, point to the `node_modules/payload` belonging to the workspace that contains the Payload application. Projects created by a compatible version of `create-payload-app` receive these files automatically. See [payloadcms/payload#17652](https://github.com/payloadcms/payload/pull/17652) for the bundled-skill design and setup details.
+
+After confirming the bundled file exists and adding the pointers, remove or disable any standalone `payload` skill already installed for the project.
+
+### Standalone legacy fallback
+
+Use this repository only when the installed `payload` package does not contain `skills/payload/SKILL.md`:
+
 ```bash
 npx skills add payloadcms/skills
 ```
+
+> [!WARNING]
+> Use one delivery channel per project. Enabling both copies puts two skills named `payload` in scope and can produce conflicting guidance.
 
 ## Available Skills
 
 ### `payload`
 
-> Comprehensive development guidelines for Payload projects. Covers collections, fields, hooks, access control, queries, and plugin development with TypeScript-first patterns.
+> Legacy fallback providing comprehensive development guidelines for Payload projects whose installed package does not include a bundled skill.
 
 **When to use:** Working with Payload projects (payload.config.ts, collections, fields, hooks, access control). Debugging validation errors, security issues, relationship queries, transactions, or hook behavior.
 
