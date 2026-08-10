@@ -6,7 +6,7 @@ Agent skill providing comprehensive guidance for Payload development with TypeSc
 
 Newer Payload releases include a version-matched copy at `node_modules/payload/skills/payload/SKILL.md`. Use that bundled copy when it exists. This repository remains a legacy fallback for Payload releases that do not ship the skill.
 
-For an existing project, direct agents to the bundled copy from `AGENTS.md`:
+For an existing project, add the pointer to the project instruction file your agent reads, such as `AGENTS.md` or `CLAUDE.md`:
 
 ```md
 # AI Agent
@@ -15,7 +15,7 @@ Before performing any Payload-related work, read and follow `node_modules/payloa
 Treat that bundled skill as authoritative for the installed Payload version.
 ```
 
-Add `@AGENTS.md` to `CLAUDE.md` for Claude Code. In a monorepo, adjust the path to the workspace containing the Payload application.
+In a monorepo, adjust the path to the workspace containing the Payload application.
 
 Feature-detect the bundled file instead of assuming a version cutoff:
 
@@ -23,7 +23,7 @@ Feature-detect the bundled file instead of assuming a version cutoff:
 test -f node_modules/payload/skills/payload/SKILL.md
 ```
 
-After adding the bundled-skill pointer, remove or disable any standalone `payload` skill already installed for the project. Do not enable both copies in one project: they share the `payload` name and may provide conflicting guidance. See [payloadcms/payload#17652](https://github.com/payloadcms/payload/pull/17652) for details.
+After adding the bundled-skill pointer, remove or disable any standalone `payload` skill already installed for the project. Do not enable both copies in one project: they share the `payload` name and may provide conflicting guidance.
 
 ## What's Included
 
@@ -67,7 +67,6 @@ skills/payload/
     ├── QUERIES.md                        # Query patterns and APIs
     ├── ENDPOINTS.md                      # Custom endpoints
     ├── ADAPTERS.md                       # Database and storage adapters
-    ├── BEST-PRACTICES.md                 # Modeling, security, performance, and organization
     ├── PLUGIN-DEVELOPMENT.md             # Plugin development patterns
     └── ADVANCED.md                       # Jobs, endpoints, localization
 ```

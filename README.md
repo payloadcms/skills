@@ -14,24 +14,16 @@ Check whether the installed package includes it:
 test -f node_modules/payload/skills/payload/SKILL.md
 ```
 
-Agents do not automatically discover skills under `node_modules`. For an existing project, add this pointer at the project root:
+Agents do not automatically discover skills under `node_modules`. For an existing project, add this pointer to the project instruction file your agent reads, such as `AGENTS.md` or `CLAUDE.md`:
 
 ```md
-<!-- AGENTS.md -->
 # AI Agent
 
 Before performing any Payload-related work, read and follow `node_modules/payload/skills/payload/SKILL.md`.
 Treat that bundled skill as authoritative for the installed Payload version.
 ```
 
-Claude Code reads `CLAUDE.md`, so add an import for the shared instructions:
-
-```md
-<!-- CLAUDE.md -->
-@AGENTS.md
-```
-
-In a monorepo, point to the `node_modules/payload` belonging to the workspace that contains the Payload application. Projects created by a compatible version of `create-payload-app` receive these files automatically. See [payloadcms/payload#17652](https://github.com/payloadcms/payload/pull/17652) for the bundled-skill design and setup details.
+In a monorepo, point to the `node_modules/payload` belonging to the workspace that contains the Payload application. Projects created by a compatible version of `create-payload-app` receive agent instruction files automatically.
 
 After confirming the bundled file exists and adding the pointers, remove or disable any standalone `payload` skill already installed for the project.
 

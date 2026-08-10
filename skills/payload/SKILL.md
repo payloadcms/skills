@@ -455,6 +455,15 @@ import type { Post, User } from '@/payload-types'
 9. **SQLite transactions** are disabled by default; enable with `transactionOptions: {}`
 10. **Point fields** are not supported in SQLite
 
+## Best Practices
+
+- **Content modeling:** Enable `versions: { drafts: true }` by default on content collections and rely on the auto-injected `_status` field rather than adding a custom `status` field; use `slugField()` instead of hand-rolling a unique text field; reserve `position: 'sidebar'` for short, at-a-glance fields and keep long content in the main area.
+- **Security:** Default to restrictive access and gradually add permissions; use `overrideAccess: false` when passing `user` to Local API; remember field-level access returns boolean only; never trust client-provided data; use `saveToJWT: true` for roles to avoid database lookups.
+- **Performance:** Index frequently queried fields; use `select` to limit returned fields; set `maxDepth` to prevent over-fetching; prefer query constraints over async access-control operations; cache expensive operations in `req.context`.
+- **Data integrity:** Always pass `req` to nested operations in hooks; use context flags to prevent hook loops; enable transactions for MongoDB and Postgres; use `beforeValidate` for formatting and `beforeChange` for business logic.
+- **Type safety:** Let dev (`autoGenerate`) and `payload build` generate types; import generated types; type user objects; use field guards; annotate extracted Payload values with the matching Payload type (`CollectionConfig`, `Field`, `CollectionBeforeChangeHook`, `Access`, `Plugin`, etc.) or use `satisfies <Type>`. Without an annotation, string properties such as `type: 'text'` widen to `string` and discriminated unions fail to resolve; inline literals receive contextual typing automatically.
+- **Organization:** Keep collections in separate files; extract access control to `access/` and hooks to `hooks/`; use reusable field factories; document complex access control.
+
 ## Reference Documentation
 
 - **[FIELDS.md](reference/FIELDS.md)** - All field types, validation, admin options
@@ -467,7 +476,6 @@ import type { Post, User } from '@/payload-types'
 - **[ENDPOINTS.md](reference/ENDPOINTS.md)** - Custom API endpoints: authentication, helpers, request/response patterns
 - **[ADAPTERS.md](reference/ADAPTERS.md)** - Database, storage, email adapters, transactions
 - **[ADVANCED.md](reference/ADVANCED.md)** - Authentication, jobs, endpoints, components, plugins, localization
-- **[BEST-PRACTICES.md](reference/BEST-PRACTICES.md)** - Content modeling, security, performance, data integrity, type safety, and organization
 - **[PLUGIN-DEVELOPMENT.md](reference/PLUGIN-DEVELOPMENT.md)** - Plugin architecture, monorepo structure, patterns, best practices
 
 ## Resources
