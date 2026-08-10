@@ -2,6 +2,29 @@
 
 Agent skill providing comprehensive guidance for Payload development with TypeScript patterns, field configurations, hooks, access control, and API examples.
 
+## Choose the Right Copy
+
+Newer Payload releases include a version-matched copy at `node_modules/payload/skills/payload/SKILL.md`. Use that bundled copy when it exists. This repository remains a legacy fallback for Payload releases that do not ship the skill.
+
+For an existing project, add the pointer to the project instruction file your agent reads, such as `AGENTS.md` or `CLAUDE.md`:
+
+```md
+# AI Agent
+
+Before performing any Payload-related work, read and follow `node_modules/payload/skills/payload/SKILL.md`.
+Treat that bundled skill as authoritative for the installed Payload version.
+```
+
+In a monorepo, adjust the path to the workspace containing the Payload application.
+
+Feature-detect the bundled file instead of assuming a version cutoff:
+
+```bash
+test -f node_modules/payload/skills/payload/SKILL.md
+```
+
+After adding the bundled-skill pointer, remove or disable any standalone `payload` skill already installed for the project. Do not enable both copies in one project: they share the `payload` name and may provide conflicting guidance.
+
 ## What's Included
 
 The `payload` skill provides expert guidance on:
@@ -16,7 +39,7 @@ The `payload` skill provides expert guidance on:
 
 ## Usage
 
-Once installed, the Agent will automatically invoke the skill when you're working on Payload projects. The skill activates when you:
+When installed as a legacy fallback, the agent will automatically invoke the skill when you're working on Payload projects. The skill activates when you:
 
 - Edit `payload.config.ts` files
 - Work with collection or global configurations

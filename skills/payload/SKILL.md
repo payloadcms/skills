@@ -7,6 +7,16 @@ description: Use when working with Payload projects (payload.config.ts, collecti
 
 Payload is a Next.js native CMS with TypeScript-first architecture, providing admin panel, database management, REST/GraphQL APIs, authentication, and file storage.
 
+## Choose the Authoritative Skill
+
+Before applying this guidance, resolve the `payload` package from the project or workspace that contains the Payload application. Do not assume a monorepo root owns the dependency.
+
+- If this `SKILL.md` is already under that package at `node_modules/payload/skills/payload/SKILL.md`, continue with it.
+- If this is a separately installed copy and the package contains `skills/payload/SKILL.md`, read that bundled file and use it exclusively. Its guidance was released with the installed Payload version, while this standalone copy may track a different version.
+- If the installed package does not contain the bundled skill, continue with this standalone copy as a legacy fallback. Read `node_modules/payload/package.json` when the exact version matters, and verify version-sensitive APIs against that release's documentation.
+
+Detect the bundled file rather than relying on a hard-coded version cutoff because availability can differ across stable, canary, and backported releases. Do not combine the bundled and standalone copies.
+
 ## Quick Reference
 
 | Task                     | Solution                                                                   | Details                                                                                                                          |
@@ -447,53 +457,12 @@ import type { Post, User } from '@/payload-types'
 
 ## Best Practices
 
-### Content Modeling
-
-- Enable `versions: { drafts: true }` by default on content collections; rely on the
-  auto-injected `_status` field rather than adding a custom `status` field
-- Use `slugField()` for slugs instead of hand-rolling a unique text field
-- Reserve `position: 'sidebar'` for short, at-a-glance fields (status, category,
-  author, date); keep long fields (description, rich text) in the main area
-
-### Security
-
-- Default to restrictive access, gradually add permissions
-- Use `overrideAccess: false` when passing `user` to Local API
-- Field-level access only returns boolean (no query constraints)
-- Never trust client-provided data
-- Use `saveToJWT: true` for roles to avoid database lookups
-
-### Performance
-
-- Index frequently queried fields
-- Use `select` to limit returned fields
-- Set `maxDepth` on relationships to prevent over-fetching
-- Prefer query constraints over async operations in access control
-- Cache expensive operations in `req.context`
-
-### Data Integrity
-
-- Always pass `req` to nested operations in hooks
-- Use context flags to prevent infinite hook loops
-- Enable transactions for MongoDB (requires replica set) and Postgres
-- Use `beforeValidate` for data formatting
-- Use `beforeChange` for business logic
-
-### Type Safety
-
-- Let dev (`autoGenerate`) and `payload build` generate types; run `generate:types` manually only when neither is running
-- Import types from generated `payload-types.ts`
-- Type your user object: `import type { User } from '@/payload-types'`
-- Use field type guards for runtime type checking
-- When extracting any Payload value into a named constant — a collection, field, hook, access function, plugin, etc. — annotate it with the matching Payload type (`CollectionConfig`, `Field`, `CollectionBeforeChangeHook`, `Access`, `Plugin`, …) or use `satisfies <Type>`. Without an annotation, string properties like `type: 'text'` widen to `string` and discriminated unions (`Field`, `CollectionConfig`) fail to resolve. Inline literals get this for free via contextual typing; extracted constants do not.
-
-### Organization
-
-- Keep collections in separate files
-- Extract access control to `access/` directory
-- Extract hooks to `hooks/` directory
-- Use reusable field factories for common patterns
-- Document complex access control with comments
+- **Content modeling:** Enable `versions: { drafts: true }` by default on content collections and rely on the auto-injected `_status` field rather than adding a custom `status` field; use `slugField()` instead of hand-rolling a unique text field; reserve `position: 'sidebar'` for short, at-a-glance fields and keep long content in the main area.
+- **Security:** Default to restrictive access and gradually add permissions; use `overrideAccess: false` when passing `user` to Local API; remember field-level access returns boolean only; never trust client-provided data; use `saveToJWT: true` for roles to avoid database lookups.
+- **Performance:** Index frequently queried fields; use `select` to limit returned fields; set `maxDepth` to prevent over-fetching; prefer query constraints over async access-control operations; cache expensive operations in `req.context`.
+- **Data integrity:** Always pass `req` to nested operations in hooks; use context flags to prevent hook loops; enable transactions for MongoDB and Postgres; use `beforeValidate` for formatting and `beforeChange` for business logic.
+- **Type safety:** Let dev (`autoGenerate`) and `payload build` generate types; import generated types; type user objects; use field guards; annotate extracted Payload values with the matching Payload type (`CollectionConfig`, `Field`, `CollectionBeforeChangeHook`, `Access`, `Plugin`, etc.) or use `satisfies <Type>`. Without an annotation, string properties such as `type: 'text'` widen to `string` and discriminated unions fail to resolve; inline literals receive contextual typing automatically.
+- **Organization:** Keep collections in separate files; extract access control to `access/` and hooks to `hooks/`; use reusable field factories; document complex access control.
 
 ## Reference Documentation
 
