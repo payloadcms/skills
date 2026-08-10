@@ -59,12 +59,16 @@ skills/payload/
 ├── SKILL.md                              # Main skill file with quick reference
 └── reference/
     ├── FIELDS.md                         # All field types and configurations
+    ├── FIELD-TYPE-GUARDS.md              # Type guards for field discrimination
     ├── COLLECTIONS.md                    # Collection patterns
     ├── HOOKS.md                          # Hook patterns and examples
     ├── ACCESS-CONTROL.md                 # Basic access control
     ├── ACCESS-CONTROL-ADVANCED.md        # Advanced access patterns
     ├── QUERIES.md                        # Query patterns and APIs
+    ├── ENDPOINTS.md                      # Custom endpoints
     ├── ADAPTERS.md                       # Database and storage adapters
+    ├── BEST-PRACTICES.md                 # Modeling, security, performance, and organization
+    ├── PLUGIN-DEVELOPMENT.md             # Plugin development patterns
     └── ADVANCED.md                       # Jobs, endpoints, localization
 ```
 
